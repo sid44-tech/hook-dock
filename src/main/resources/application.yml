@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: hookdock
+
+server:
+  port: ${HOOKDOCK_PORT:8080}
