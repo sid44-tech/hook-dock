@@ -1,6 +1,16 @@
 spring:
   application:
     name: hookdock
+  datasource:
+    url: ${HOOKDOCK_DB_URL:jdbc:postgresql://localhost:5432/hookdock}
+    username: ${HOOKDOCK_DB_USERNAME:hookdock}
+    password: ${HOOKDOCK_DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
 
 server:
   port: ${HOOKDOCK_PORT:8080}

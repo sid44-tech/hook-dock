@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hookdock
+      POSTGRES_USER: ${HOOKDOCK_DB_USERNAME:-hookdock}
+      POSTGRES_PASSWORD: ${HOOKDOCK_DB_PASSWORD:?set HOOKDOCK_DB_PASSWORD in .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - hookdock-pg:/var/lib/postgresql/data
+
+volumes:
+  hookdock-pg:
