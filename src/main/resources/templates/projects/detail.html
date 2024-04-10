@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head(${project.name})}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<main class="container">
+    <h1 class="h3" th:text="${project.name}">Project</h1>
+    <p class="text-muted" th:text="${project.description}"></p>
+</main>
+</body>
+</html>

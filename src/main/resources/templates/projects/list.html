@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Projects')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<main class="container">
+    <h1 class="h3 mb-3">Projects</h1>
+
+    <table class="table table-sm" th:if="${!projects.isEmpty()}">
+        <thead><tr><th>Name</th><th>Description</th><th>Created</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${projects}">
+            <td><a th:href="@{/projects/{id}(id=${p.id})}" th:text="${p.name}">name</a></td>
+            <td th:text="${p.description}">desc</td>
+            <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}">date</td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${projects.isEmpty()}" class="text-muted">No projects yet.</p>
+
+    <h2 class="h5 mt-4">New project</h2>
+    <form th:action="@{/projects}" th:object="${form}" method="post" class="row g-2">
+        <div class="col-md-4">
+            <input th:field="*{name}" class="form-control" placeholder="Name" required>
+            <div class="text-danger small" th:errors="*{name}"></div>
+        </div>
+        <div class="col-md-6">
+            <input th:field="*{description}" class="form-control" placeholder="Description (optional)">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">Create</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>
