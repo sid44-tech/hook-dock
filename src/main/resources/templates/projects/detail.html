@@ -6,6 +6,7 @@
 <main class="container">
     <h1 class="h3" th:text="${project.name}">Project</h1>
     <p class="text-muted" th:text="${project.description}"></p>
+    <a class="btn btn-sm btn-outline-primary" th:href="@{/projects/{id}/events(id=${project.id})}">View events</a>
 
     <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
 

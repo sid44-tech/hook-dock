@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Event')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<main class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}">Project</a></li>
+            <li class="breadcrumb-item"><a th:href="@{/projects/{id}/events(id=${project.id})}">Events</a></li>
+            <li class="breadcrumb-item active" th:text="${event.id}">id</li>
+        </ol>
+    </nav>
+
+    <h1 class="h4">
+        <span th:text="${event.method}">POST</span>
+        <code th:text="${event.rawPath}">/in/...</code>
+        <span class="badge text-bg-info" th:text="${event.captureStatus}">CAPTURED</span>
+    </h1>
+
+    <dl class="row small">
+        <dt class="col-sm-2">Received</dt>
+        <dd class="col-sm-10" th:text="${event.receivedAt}">time</dd>
+        <dt class="col-sm-2">Endpoint</dt>
+        <dd class="col-sm-10" th:text="${endpoint.name}">endpoint</dd>
+        <dt class="col-sm-2">Provider</dt>
+        <dd class="col-sm-10" th:text="${event.provider} ?: 'unknown'">provider</dd>
+        <dt class="col-sm-2">Event ID</dt>
+        <dd class="col-sm-10" th:text="${event.providerEventId} ?: '-'">id</dd>
+        <dt class="col-sm-2">Content type</dt>
+        <dd class="col-sm-10" th:text="${event.contentType} ?: '-'">type</dd>
+        <dt class="col-sm-2">Size</dt>
+        <dd class="col-sm-10" th:text="${event.bodySize} + ' bytes'">0</dd>
+        <dt class="col-sm-2">Query string</dt>
+        <dd class="col-sm-10"><code th:text="${event.queryString} ?: '-'"></code></dd>
+    </dl>
+
+    <h2 class="h5">Headers</h2>
+    <table class="table table-sm small">
+        <tbody>
+        <tr th:each="h : ${event.requestHeaders}">
+            <th style="width: 18rem" th:text="${h.key}">name</th>
+            <td><code th:text="${#strings.listJoin(h.value, ', ')}">value</code></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2 class="h5">Body</h2>
+    <p th:if="${payload.binary}" class="text-muted">Binary payload (not valid UTF-8), not displayed.</p>
+    <div th:unless="${payload.binary}">
+        <div th:if="${payload.pretty != null}">
+            <h3 class="h6">Formatted</h3>
+            <pre class="payload" th:text="${payload.pretty}"></pre>
+        </div>
+        <h3 class="h6">Raw</h3>
+        <pre class="payload" th:text="${payload.raw}"></pre>
+    </div>
+</main>
+</body>
+</html>
