@@ -17,11 +17,14 @@ public class CaptureService {
 
     private final WebhookEndpointRepository endpoints;
     private final CapturedWebhookRepository events;
+    private final HeaderRedactor headerRedactor;
     private final Clock clock;
 
-    public CaptureService(WebhookEndpointRepository endpoints, CapturedWebhookRepository events, Clock clock) {
+    public CaptureService(WebhookEndpointRepository endpoints, CapturedWebhookRepository events,
+            HeaderRedactor headerRedactor, Clock clock) {
         this.endpoints = endpoints;
         this.events = events;
+        this.headerRedactor = headerRedactor;
         this.clock = clock;
     }
 
@@ -44,7 +47,7 @@ public class CaptureService {
                 request.method(),
                 request.path(),
                 request.queryString(),
-                request.headers(),
+                headerRedactor.redact(request.headers()),
                 request.body(),
                 request.contentType(),
                 provider.provider(),

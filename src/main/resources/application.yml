@@ -14,3 +14,12 @@ spring:
 
 server:
   port: ${HOOKDOCK_PORT:8080}
+
+hookdock:
+  ingestion:
+    redacted-headers:
+      - authorization
+      - proxy-authorization
+      - cookie
+      - x-api-key
+      - x-auth-token
