@@ -17,6 +17,9 @@ public class SecurityConfig {
                         .requestMatchers("/in/**").permitAll()
                         .requestMatchers("/login", "/css/**", "/error").permitAll()
                         .anyRequest().authenticated())
+                // Webhook senders can't send a CSRF token. /in/** is authenticated by the
+                // endpoint token instead; every browser form keeps CSRF protection.
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/in/**"))
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/projects", false)
