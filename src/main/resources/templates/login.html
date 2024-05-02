@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Sign in')}"></head>
+<body>
+<main class="container" style="max-width: 24rem; margin-top: 6rem">
+    <h1 class="h4 mb-3">HookDock</h1>
+    <div class="alert alert-danger" th:if="${param.error}">Invalid username or password.</div>
+    <div class="alert alert-info" th:if="${param.logout}">You have been signed out.</div>
+    <form th:action="@{/login}" method="post">
+        <div class="mb-2">
+            <label class="form-label" for="username">Username</label>
+            <input class="form-control" id="username" name="username" autocomplete="username" required autofocus>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control" id="password" name="password" type="password"
+                   autocomplete="current-password" required>
+        </div>
+        <button class="btn btn-primary w-100" type="submit">Sign in</button>
+    </form>
+</main>
+</body>
+</html>

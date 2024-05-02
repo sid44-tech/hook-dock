@@ -16,6 +16,9 @@ server:
   port: ${HOOKDOCK_PORT:8080}
 
 hookdock:
+  admin:
+    username: ${HOOKDOCK_ADMIN_USERNAME:}
+    password: ${HOOKDOCK_ADMIN_PASSWORD:}
   ingestion:
     redacted-headers:
       - authorization
