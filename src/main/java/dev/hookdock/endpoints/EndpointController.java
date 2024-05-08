@@ -42,6 +42,7 @@ public class EndpointController {
     @PostMapping("/endpoints/{endpointId}/enabled")
     public String toggle(@PathVariable UUID endpointId, @RequestParam boolean enabled) {
         WebhookEndpoint endpoint = endpointService.get(endpointId);
+        projectService.getProject(endpoint.getProjectId());
         endpointService.setEnabled(endpointId, enabled);
         return "redirect:/projects/" + endpoint.getProjectId();
     }

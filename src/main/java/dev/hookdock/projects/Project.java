@@ -21,14 +21,18 @@ public class Project {
     @Column(length = 500)
     private String description;
 
+    @Column(name = "owner_id")
+    private UUID ownerId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     protected Project() {
     }
 
-    public Project(String name, String description, Instant createdAt) {
+    public Project(UUID ownerId, String name, String description, Instant createdAt) {
         this.id = UUID.randomUUID();
+        this.ownerId = ownerId;
         this.name = name;
         this.description = description;
         this.createdAt = createdAt;
@@ -44,6 +48,10 @@ public class Project {
 
     public String getDescription() {
         return description;
+    }
+
+    public UUID getOwnerId() {
+        return ownerId;
     }
 
     public Instant getCreatedAt() {

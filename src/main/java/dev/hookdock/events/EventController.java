@@ -38,9 +38,9 @@ public class EventController {
     public String detail(@PathVariable UUID eventId, Model model) {
         CapturedWebhook event = eventService.get(eventId);
         WebhookEndpoint endpoint = endpointService.get(event.getEndpointId());
+        model.addAttribute("project", projectService.getProject(endpoint.getProjectId()));
         model.addAttribute("event", event);
         model.addAttribute("endpoint", endpoint);
-        model.addAttribute("project", projectService.getProject(endpoint.getProjectId()));
         model.addAttribute("payload", payloadFormatter.format(event.getRequestBody(), event.getContentType()));
         return "events/detail";
     }
