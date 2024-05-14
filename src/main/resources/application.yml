@@ -20,6 +20,7 @@ hookdock:
     username: ${HOOKDOCK_ADMIN_USERNAME:}
     password: ${HOOKDOCK_ADMIN_PASSWORD:}
   ingestion:
+    max-body-size: ${HOOKDOCK_MAX_BODY_SIZE:1MB}
     redacted-headers:
       - authorization
       - proxy-authorization
