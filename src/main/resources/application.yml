@@ -27,3 +27,7 @@ hookdock:
       - cookie
       - x-api-key
       - x-auth-token
+  destinations:
+    # Only enable for local development. Allows forwarding to localhost/private IPs.
+    allow-private-networks: ${HOOKDOCK_ALLOW_PRIVATE_DESTINATIONS:false}
+    allowed-ports: 80,443,8080,8443

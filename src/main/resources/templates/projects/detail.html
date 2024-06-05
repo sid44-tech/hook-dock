@@ -47,6 +47,42 @@
             <button class="btn btn-primary w-100" type="submit">Add endpoint</button>
         </div>
     </form>
+
+    <h2 class="h5 mt-5">Destinations</h2>
+    <p class="small text-muted">Approved targets that events can be forwarded or replayed to.</p>
+    <table class="table table-sm" th:if="${!destinations.isEmpty()}">
+        <thead><tr><th>Name</th><th>URL</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="d : ${destinations}">
+            <td th:text="${d.name}">name</td>
+            <td><code th:text="${d.url}">url</code></td>
+            <td>
+                <span th:if="${d.enabled}" class="badge text-bg-success">enabled</span>
+                <span th:unless="${d.enabled}" class="badge text-bg-secondary">disabled</span>
+            </td>
+            <td class="text-end">
+                <form th:action="@{/destinations/{id}/enabled(id=${d.id})}" method="post" class="d-inline">
+                    <input type="hidden" name="enabled" th:value="${!d.enabled}">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit"
+                            th:text="${d.enabled} ? 'Disable' : 'Enable'">Toggle</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${destinations.isEmpty()}" class="text-muted">No destinations yet.</p>
+
+    <form th:action="@{/projects/{id}/destinations(id=${project.id})}" method="post" class="row g-2">
+        <div class="col-md-3">
+            <input name="name" class="form-control" placeholder="Name" required maxlength="100">
+        </div>
+        <div class="col-md-7">
+            <input name="url" class="form-control" placeholder="https://example.com/webhooks" required maxlength="2048">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">Add destination</button>
+        </div>
+    </form>
 </main>
 </body>
 </html>

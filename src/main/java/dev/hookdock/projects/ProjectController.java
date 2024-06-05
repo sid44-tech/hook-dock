@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import dev.hookdock.destinations.DestinationService;
 import dev.hookdock.endpoints.EndpointService;
 
 @Controller
@@ -21,10 +22,13 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final EndpointService endpointService;
+    private final DestinationService destinationService;
 
-    public ProjectController(ProjectService projectService, EndpointService endpointService) {
+    public ProjectController(ProjectService projectService, EndpointService endpointService,
+            DestinationService destinationService) {
         this.projectService = projectService;
         this.endpointService = endpointService;
+        this.destinationService = destinationService;
     }
 
     @GetMapping
@@ -48,6 +52,7 @@ public class ProjectController {
     public String detail(@PathVariable UUID projectId, Model model) {
         model.addAttribute("project", projectService.getProject(projectId));
         model.addAttribute("endpoints", endpointService.listForProject(projectId));
+        model.addAttribute("destinations", destinationService.listForProject(projectId));
         return "projects/detail";
     }
 }
