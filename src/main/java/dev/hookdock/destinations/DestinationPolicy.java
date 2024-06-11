@@ -1,5 +1,7 @@
 package dev.hookdock.destinations;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -99,11 +101,50 @@ public class DestinationPolicy {
         return "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
     }
 
+    /*
+     * The InetAddress helpers only cover part of this. In particular
+     * isSiteLocalAddress() on IPv6 checks the deprecated fec0::/10 range and
+     * misses unique-local fc00::/7, so the ranges below are checked by hand.
+     */
     static boolean isNonPublic(InetAddress address) {
-        return address.isAnyLocalAddress()
+        if (address.isAnyLocalAddress()
                 || address.isLoopbackAddress()
                 || address.isLinkLocalAddress()
                 || address.isSiteLocalAddress()
-                || address.isMulticastAddress();
+                || address.isMulticastAddress()) {
+            return true;
+        }
+        byte[] b = address.getAddress();
+        if (address instanceof Inet4Address) {
+            int first = b[0] & 0xff;
+            int second = b[1] & 0xff;
+            return first == 0                                   // 0.0.0.0/8 "this network"
+                    || (first == 100 && (second & 0xc0) == 64)  // 100.64.0.0/10 carrier-grade NAT
+                    || (first == 192 && second == 0 && (b[2] & 0xff) == 0) // 192.0.0.0/24 IETF
+                    || (first == 198 && (second & 0xfe) == 18)  // 198.18.0.0/15 benchmarking
+                    || first >= 240;                            // reserved + broadcast
+        }
+        if (address instanceof Inet6Address) {
+            int first = b[0] & 0xff;
+            if ((first & 0xfe) == 0xfc) {
+                return true;                                    // fc00::/7 unique local
+            }
+            if (isNat64(b)) {
+                return true;                                    // 64:ff9b::/96 can reach IPv4 internals
+            }
+        }
+        return false;
+    }
+
+    private static boolean isNat64(byte[] b) {
+        if (b[0] != 0x00 || b[1] != 0x64 || (b[2] & 0xff) != 0xff || (b[3] & 0xff) != 0x9b) {
+            return false;
+        }
+        for (int i = 4; i < 12; i++) {
+            if (b[i] != 0) {
+                return false;
+            }
+        }
+        return true;
     }
 }
