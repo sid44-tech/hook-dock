@@ -40,6 +40,16 @@ public class EndpointService {
         return new CreatedEndpoint(endpoint, token);
     }
 
+    /**
+     * Points the endpoint at a destination for automatic forwarding, or turns
+     * forwarding off when {@code destinationId} is null. The caller is
+     * responsible for checking the destination belongs to the same project.
+     */
+    @Transactional
+    public void configureForwarding(UUID endpointId, UUID destinationId) {
+        get(endpointId).configureForwarding(destinationId);
+    }
+
     @Transactional
     public void setEnabled(UUID endpointId, boolean enabled) {
         get(endpointId).setEnabled(enabled);

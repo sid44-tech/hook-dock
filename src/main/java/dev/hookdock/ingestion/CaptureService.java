@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.hookdock.delivery.DeliveryService;
 import dev.hookdock.endpoints.TokenHasher;
 import dev.hookdock.endpoints.WebhookEndpoint;
 import dev.hookdock.endpoints.WebhookEndpointRepository;
@@ -18,19 +19,22 @@ public class CaptureService {
     private final WebhookEndpointRepository endpoints;
     private final CapturedWebhookRepository events;
     private final HeaderRedactor headerRedactor;
+    private final DeliveryService deliveryService;
     private final Clock clock;
 
     public CaptureService(WebhookEndpointRepository endpoints, CapturedWebhookRepository events,
-            HeaderRedactor headerRedactor, Clock clock) {
+            HeaderRedactor headerRedactor, DeliveryService deliveryService, Clock clock) {
         this.endpoints = endpoints;
         this.events = events;
         this.headerRedactor = headerRedactor;
+        this.deliveryService = deliveryService;
         this.clock = clock;
     }
 
     /**
-     * Persists the inbound request. Returns empty if the token doesn't match an
-     * enabled endpoint, in which case nothing is stored.
+     * Persists the inbound request, and queues a forward if the endpoint has one
+     * configured. Returns empty if the token doesn't match an enabled endpoint,
+     * in which case nothing is stored.
      */
     @Transactional
     public Optional<CapturedWebhook> capture(String token, InboundRequest request) {
@@ -52,6 +56,8 @@ public class CaptureService {
                 request.contentType(),
                 provider.provider(),
                 provider.eventId());
-        return Optional.of(events.save(event));
+        CapturedWebhook saved = events.save(event);
+        deliveryService.enqueueAutoForward(saved, endpoint.get());
+        return Optional.of(saved);
     }
 }

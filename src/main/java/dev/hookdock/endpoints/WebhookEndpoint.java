@@ -30,6 +30,9 @@ public class WebhookEndpoint {
     @Column(name = "forwarding_enabled", nullable = false)
     private boolean forwardingEnabled = false;
 
+    @Column(name = "forward_destination_id")
+    private UUID forwardDestinationId;
+
     @Column(name = "retention_days", nullable = false)
     private int retentionDays = 30;
 
@@ -75,8 +78,13 @@ public class WebhookEndpoint {
         return forwardingEnabled;
     }
 
-    public void setForwardingEnabled(boolean forwardingEnabled) {
-        this.forwardingEnabled = forwardingEnabled;
+    public UUID getForwardDestinationId() {
+        return forwardDestinationId;
+    }
+
+    public void configureForwarding(UUID destinationId) {
+        this.forwardDestinationId = destinationId;
+        this.forwardingEnabled = destinationId != null;
     }
 
     public int getRetentionDays() {

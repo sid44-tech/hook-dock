@@ -18,13 +18,23 @@
 
     <h2 class="h5 mt-4">Endpoints</h2>
     <table class="table table-sm" th:if="${!endpoints.isEmpty()}">
-        <thead><tr><th>Name</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Status</th><th>Forward to</th><th>Created</th><th></th></tr></thead>
         <tbody>
         <tr th:each="e : ${endpoints}">
             <td th:text="${e.name}">name</td>
             <td>
                 <span th:if="${e.enabled}" class="badge text-bg-success">enabled</span>
                 <span th:unless="${e.enabled}" class="badge text-bg-secondary">disabled</span>
+            </td>
+            <td>
+                <form th:action="@{/endpoints/{id}/forwarding(id=${e.id})}" method="post" class="d-flex gap-1">
+                    <select name="destinationId" class="form-select form-select-sm">
+                        <option value="">Capture only</option>
+                        <option th:each="d : ${destinations}" th:if="${d.enabled}" th:value="${d.id}"
+                                th:text="${d.name}" th:selected="${d.id == e.forwardDestinationId}">dest</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+                </form>
             </td>
             <td th:text="${#temporals.format(e.createdAt, 'yyyy-MM-dd HH:mm')}">date</td>
             <td class="text-end">
