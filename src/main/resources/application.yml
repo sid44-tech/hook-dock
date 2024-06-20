@@ -31,3 +31,9 @@ hookdock:
     # Only enable for local development. Allows forwarding to localhost/private IPs.
     allow-private-networks: ${HOOKDOCK_ALLOW_PRIVATE_DESTINATIONS:false}
     allowed-ports: 80,443,8080,8443
+  delivery:
+    worker-enabled: true
+    poll-interval: PT2S
+    batch-size: 10
+    connect-timeout: 5s
+    request-timeout: 15s
