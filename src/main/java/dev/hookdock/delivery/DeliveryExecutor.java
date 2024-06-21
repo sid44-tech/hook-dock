@@ -104,7 +104,7 @@ class DeliveryExecutor {
     }
 
     private Map<String, List<String>> outboundHeaders(CapturedWebhook event, DeliveryAttempt attempt) {
-        Map<String, List<String>> headers = new LinkedHashMap<>(event.getRequestHeaders());
+        Map<String, List<String>> headers = new LinkedHashMap<>(OutboundHeaderFilter.filter(event.getRequestHeaders()));
         headers.put("x-hookdock-event-id", List.of(event.getId().toString()));
         headers.put("x-hookdock-attempt-id", List.of(attempt.getId().toString()));
         return headers;
