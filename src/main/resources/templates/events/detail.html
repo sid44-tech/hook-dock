@@ -55,6 +55,39 @@
         <h3 class="h6">Raw</h3>
         <pre class="payload" th:text="${payload.raw}"></pre>
     </div>
+
+    <h2 class="h5 mt-4">Delivery attempts</h2>
+    <p th:if="${attempts.isEmpty()}" class="text-muted">
+        No delivery attempts. This event was captured only.
+    </p>
+    <table class="table table-sm small" th:if="${!attempts.isEmpty()}">
+        <thead>
+        <tr><th>#</th><th>Trigger</th><th>Destination</th><th>Status</th><th>HTTP</th><th>Duration</th><th>Queued</th><th>Error</th></tr>
+        </thead>
+        <tbody>
+        <th:block th:each="a : ${attempts}">
+            <tr>
+                <td th:text="${a.attemptNumber}">1</td>
+                <td th:text="${a.triggerType}">AUTO_FORWARD</td>
+                <td th:text="${destinationNames[a.destinationId]} ?: '(deleted)'">dest</td>
+                <td><span th:replace="~{fragments :: deliveryBadge(${a.status})}"></span></td>
+                <td th:text="${a.httpStatus} ?: '-'">200</td>
+                <td th:text="${a.durationMs != null} ? ${a.durationMs} + ' ms' : '-'">12 ms</td>
+                <td th:text="${#temporals.format(a.queuedAt, 'yyyy-MM-dd HH:mm:ss')}">time</td>
+                <td th:text="${a.errorMessage} ?: ''">error</td>
+            </tr>
+            <tr th:if="${a.responseBodyExcerpt != null and !a.responseBodyExcerpt.isEmpty()}">
+                <td></td>
+                <td colspan="7">
+                    <details>
+                        <summary>Response body (excerpt)</summary>
+                        <pre class="payload mt-1" th:text="${a.responseBodyExcerpt}"></pre>
+                    </details>
+                </td>
+            </tr>
+        </th:block>
+        </tbody>
+    </table>
 </main>
 </body>
 </html>

@@ -20,5 +20,14 @@
         </form>
     </div>
 </nav>
+
+<span th:fragment="deliveryBadge(status)" th:switch="${status?.name()}">
+    <span th:case="'SUCCEEDED'" class="badge text-bg-success">delivered</span>
+    <span th:case="'FAILED'" class="badge text-bg-danger">failed</span>
+    <span th:case="'BLOCKED'" class="badge text-bg-warning">blocked</span>
+    <span th:case="'PENDING'" class="badge text-bg-secondary">pending</span>
+    <span th:case="'IN_PROGRESS'" class="badge text-bg-primary">sending</span>
+    <span th:case="*" class="text-muted small">capture only</span>
+</span>
 </body>
 </html>

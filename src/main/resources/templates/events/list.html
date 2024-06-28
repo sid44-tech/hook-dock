@@ -14,7 +14,7 @@
 
     <table class="table table-sm table-hover" th:if="${!rows.isEmpty()}">
         <thead>
-        <tr><th>Received</th><th>Endpoint</th><th>Method</th><th>Provider</th><th>Event ID</th><th>Content type</th><th>Size</th></tr>
+        <tr><th>Received</th><th>Endpoint</th><th>Method</th><th>Provider</th><th>Event ID</th><th>Content type</th><th>Size</th><th>Capture</th><th>Delivery</th></tr>
         </thead>
         <tbody>
         <tr th:each="r : ${rows}">
@@ -26,6 +26,8 @@
             <td class="text-truncate" style="max-width: 12rem" th:text="${r.event.providerEventId} ?: '-'">id</td>
             <td th:text="${r.event.contentType} ?: '-'">type</td>
             <td th:text="${r.event.bodySize} + ' B'">0 B</td>
+            <td><span class="badge text-bg-info" th:text="${#strings.toLowerCase(r.event.captureStatus)}">captured</span></td>
+            <td><span th:replace="~{fragments :: deliveryBadge(${r.latestDelivery})}"></span></td>
         </tr>
         </tbody>
     </table>
