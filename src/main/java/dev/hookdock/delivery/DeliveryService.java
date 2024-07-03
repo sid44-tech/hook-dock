@@ -35,6 +35,15 @@ public class DeliveryService {
         return Optional.of(enqueue(event.getId(), endpoint.getForwardDestinationId(), TriggerType.AUTO_FORWARD, null));
     }
 
+    /**
+     * Callers must have already checked the user can access the event and that
+     * the destination belongs to the same project.
+     */
+    @Transactional
+    public DeliveryAttempt enqueueReplay(UUID eventId, UUID destinationId, UUID requestedBy) {
+        return enqueue(eventId, destinationId, TriggerType.MANUAL_REPLAY, requestedBy);
+    }
+
     @Transactional(readOnly = true)
     public List<DeliveryAttempt> attemptsFor(UUID eventId) {
         return attempts.findByCapturedWebhookIdOrderByAttemptNumberAsc(eventId);

@@ -57,6 +57,9 @@ public class EventController {
                 .collect(Collectors.toMap(Destination::getId, Destination::getName));
         model.addAttribute("attempts", deliveryService.attemptsFor(eventId));
         model.addAttribute("destinationNames", destinationNames);
+        model.addAttribute("replayDestinations", destinationService.listForProject(endpoint.getProjectId()).stream()
+                .filter(Destination::isEnabled)
+                .toList());
         return "events/detail";
     }
 }
