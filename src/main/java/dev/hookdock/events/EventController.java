@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import dev.hookdock.delivery.DeliveryService;
 import dev.hookdock.destinations.Destination;
@@ -38,9 +39,9 @@ public class EventController {
     }
 
     @GetMapping("/projects/{projectId}/events")
-    public String list(@PathVariable UUID projectId, Model model) {
+    public String list(@PathVariable UUID projectId, @RequestParam(defaultValue = "0") int page, Model model) {
         model.addAttribute("project", projectService.getProject(projectId));
-        model.addAttribute("rows", eventService.listForProject(projectId));
+        model.addAttribute("rows", eventService.listForProject(projectId, page));
         return "events/list";
     }
 

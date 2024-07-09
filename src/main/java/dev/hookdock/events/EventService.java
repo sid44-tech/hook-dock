@@ -5,11 +5,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.hookdock.common.NotFoundException;
-import dev.hookdock.delivery.DeliveryAttempt;
 import dev.hookdock.delivery.DeliveryService;
 import dev.hookdock.delivery.DeliveryStatus;
 import dev.hookdock.endpoints.EndpointService;
@@ -17,6 +19,8 @@ import dev.hookdock.endpoints.WebhookEndpoint;
 
 @Service
 public class EventService {
+
+    public static final int PAGE_SIZE = 50;
 
     private final CapturedWebhookRepository events;
     private final EndpointService endpointService;
@@ -30,20 +34,20 @@ public class EventService {
     }
 
     @Transactional(readOnly = true)
-    public List<EventRow> listForProject(UUID projectId) {
+    public Page<EventRow> listForProject(UUID projectId, int page) {
+        PageRequest request = PageRequest.of(Math.max(page, 0), PAGE_SIZE, Sort.by(Sort.Direction.DESC, "receivedAt"));
         Map<UUID, String> endpointNames = endpointService.listForProject(projectId).stream()
                 .collect(Collectors.toMap(WebhookEndpoint::getId, WebhookEndpoint::getName));
         if (endpointNames.isEmpty()) {
-            return List.of();
+            return Page.empty(request);
         }
-        return events.findByEndpointIdInOrderByReceivedAtDesc(endpointNames.keySet()).stream()
-                .map(e -> new EventRow(e, endpointNames.get(e.getEndpointId()), latestStatus(e.getId())))
-                .toList();
-    }
+        Page<CapturedWebhook> result = events.findByEndpointIdIn(endpointNames.keySet(), request);
 
-    private DeliveryStatus latestStatus(UUID eventId) {
-        List<DeliveryAttempt> attempts = deliveryService.attemptsFor(eventId);
-        return attempts.isEmpty() ? null : attempts.get(attempts.size() - 1).getStatus();
+        // One query for all delivery statuses on the page instead of one per row.
+        List<UUID> ids = result.getContent().stream().map(CapturedWebhook::getId).toList();
+        Map<UUID, DeliveryStatus> statuses = deliveryService.latestStatuses(ids);
+
+        return result.map(e -> new EventRow(e, endpointNames.get(e.getEndpointId()), statuses.get(e.getId())));
     }
 
     @Transactional(readOnly = true)

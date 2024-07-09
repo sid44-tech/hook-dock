@@ -1,9 +1,12 @@
 package dev.hookdock.delivery;
 
 import java.time.Clock;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +50,15 @@ public class DeliveryService {
     @Transactional(readOnly = true)
     public List<DeliveryAttempt> attemptsFor(UUID eventId) {
         return attempts.findByCapturedWebhookIdOrderByAttemptNumberAsc(eventId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, DeliveryStatus> latestStatuses(Collection<UUID> eventIds) {
+        if (eventIds.isEmpty()) {
+            return Map.of();
+        }
+        return attempts.findLatestForEvents(eventIds).stream()
+                .collect(Collectors.toMap(DeliveryAttempt::getCapturedWebhookId, DeliveryAttempt::getStatus));
     }
 
     DeliveryAttempt enqueue(UUID eventId, UUID destinationId, TriggerType trigger, UUID requestedBy) {

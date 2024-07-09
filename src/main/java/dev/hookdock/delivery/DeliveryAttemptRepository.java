@@ -1,6 +1,7 @@
 package dev.hookdock.delivery;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,10 @@ import org.springframework.data.jpa.repository.Query;
 public interface DeliveryAttemptRepository extends JpaRepository<DeliveryAttempt, UUID> {
 
     List<DeliveryAttempt> findByCapturedWebhookIdOrderByAttemptNumberAsc(UUID capturedWebhookId);
+
+    @Query("select a from DeliveryAttempt a where a.capturedWebhookId in :eventIds and a.attemptNumber = "
+            + "(select max(b.attemptNumber) from DeliveryAttempt b where b.capturedWebhookId = a.capturedWebhookId)")
+    List<DeliveryAttempt> findLatestForEvents(Collection<UUID> eventIds);
 
     @Query("select coalesce(max(a.attemptNumber), 0) from DeliveryAttempt a where a.capturedWebhookId = :eventId")
     int maxAttemptNumber(UUID eventId);

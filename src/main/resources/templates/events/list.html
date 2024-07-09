@@ -32,6 +32,15 @@
         </tbody>
     </table>
     <p th:if="${rows.isEmpty()}" class="text-muted">No events captured yet.</p>
+
+    <nav th:if="${rows.totalPages > 1}" class="d-flex justify-content-between align-items-center small">
+        <a class="btn btn-sm btn-outline-secondary" th:classappend="${rows.first} ? 'disabled'"
+           th:href="@{/projects/{id}/events(id=${project.id}, page=${rows.number - 1})}">&larr; Newer</a>
+        <span th:text="'Page ' + ${rows.number + 1} + ' of ' + ${rows.totalPages}
+                       + ' (' + ${rows.totalElements} + ' events)'">Page 1 of 1</span>
+        <a class="btn btn-sm btn-outline-secondary" th:classappend="${rows.last} ? 'disabled'"
+           th:href="@{/projects/{id}/events(id=${project.id}, page=${rows.number + 1})}">Older &rarr;</a>
+    </nav>
 </main>
 </body>
 </html>
