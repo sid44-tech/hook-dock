@@ -51,6 +51,20 @@ public class EventService {
     }
 
     @Transactional(readOnly = true)
+    public long countForEndpoints(List<UUID> endpointIds) {
+        return endpointIds.isEmpty() ? 0 : events.countByEndpointIdIn(endpointIds);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CapturedWebhook> recentForEndpoints(List<UUID> endpointIds, int limit) {
+        if (endpointIds.isEmpty()) {
+            return List.of();
+        }
+        return events.findByEndpointIdIn(endpointIds,
+                PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "receivedAt"))).getContent();
+    }
+
+    @Transactional(readOnly = true)
     public CapturedWebhook get(UUID eventId) {
         return events.findById(eventId).orElseThrow(() -> new NotFoundException("Event not found"));
     }

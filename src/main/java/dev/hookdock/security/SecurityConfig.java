@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/in/**"))
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/projects", false)
+                        .defaultSuccessUrl("/", false)
                         .permitAll())
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"));
         return http.build();

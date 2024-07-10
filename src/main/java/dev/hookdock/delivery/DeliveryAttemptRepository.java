@@ -18,6 +18,12 @@ public interface DeliveryAttemptRepository extends JpaRepository<DeliveryAttempt
             + "(select max(b.attemptNumber) from DeliveryAttempt b where b.capturedWebhookId = a.capturedWebhookId)")
     List<DeliveryAttempt> findLatestForEvents(Collection<UUID> eventIds);
 
+    @Query("select a from DeliveryAttempt a where a.status in (dev.hookdock.delivery.DeliveryStatus.FAILED, "
+            + "dev.hookdock.delivery.DeliveryStatus.BLOCKED) and a.capturedWebhookId in "
+            + "(select e.id from CapturedWebhook e where e.endpointId in :endpointIds) "
+            + "order by a.completedAt desc")
+    List<DeliveryAttempt> findRecentFailures(Collection<UUID> endpointIds, Pageable page);
+
     @Query("select coalesce(max(a.attemptNumber), 0) from DeliveryAttempt a where a.capturedWebhookId = :eventId")
     int maxAttemptNumber(UUID eventId);
 

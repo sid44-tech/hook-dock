@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +60,14 @@ public class DeliveryService {
         }
         return attempts.findLatestForEvents(eventIds).stream()
                 .collect(Collectors.toMap(DeliveryAttempt::getCapturedWebhookId, DeliveryAttempt::getStatus));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DeliveryAttempt> recentFailures(Collection<UUID> endpointIds, int limit) {
+        if (endpointIds.isEmpty()) {
+            return List.of();
+        }
+        return attempts.findRecentFailures(endpointIds, PageRequest.of(0, limit));
     }
 
     DeliveryAttempt enqueue(UUID eventId, UUID destinationId, TriggerType trigger, UUID requestedBy) {

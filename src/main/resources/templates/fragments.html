@@ -10,8 +10,9 @@
 <body>
 <nav th:fragment="nav" class="navbar navbar-expand bg-dark navbar-dark mb-4">
     <div class="container">
-        <a class="navbar-brand" th:href="@{/projects}">HookDock</a>
+        <a class="navbar-brand" th:href="@{/}">HookDock</a>
         <ul class="navbar-nav me-auto">
+            <li class="nav-item"><a class="nav-link" th:href="@{/}">Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" th:href="@{/projects}">Projects</a></li>
         </ul>
         <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="d-flex align-items-center">

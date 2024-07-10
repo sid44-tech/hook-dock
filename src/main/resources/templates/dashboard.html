@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Dashboard')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<main class="container">
+    <h1 class="h3 mb-3">Dashboard</h1>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3">
+                <div class="small text-muted">Projects</div>
+                <div class="fs-4" th:text="${projects.size()}">0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3">
+                <div class="small text-muted">Endpoints</div>
+                <div class="fs-4" th:text="${endpointCount}">0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3">
+                <div class="small text-muted">Captured events</div>
+                <div class="fs-4" th:text="${eventCount}">0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3">
+                <div class="small text-muted">Recent delivery failures</div>
+                <div class="fs-4" th:text="${recentFailures.size()}">0</div>
+            </div>
+        </div>
+    </div>
+
+    <p th:if="${projects.isEmpty()}">
+        No projects yet. <a th:href="@{/projects}">Create your first project</a> to get a webhook URL.
+    </p>
+
+    <h2 class="h5">Recently captured</h2>
+    <table class="table table-sm small" th:if="${!recentEvents.isEmpty()}">
+        <thead><tr><th>Received</th><th>Project</th><th>Endpoint</th><th>Method</th><th>Provider</th><th>Size</th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${recentEvents}" th:with="ep=${endpointsById[e.endpointId]}">
+            <td><a th:href="@{/events/{id}(id=${e.id})}"
+                   th:text="${#temporals.format(e.receivedAt, 'yyyy-MM-dd HH:mm:ss')}">time</a></td>
+            <td th:text="${projectsById[ep.projectId].name}">project</td>
+            <td th:text="${ep.name}">endpoint</td>
+            <td th:text="${e.method}">POST</td>
+            <td th:text="${e.provider} ?: '-'">provider</td>
+            <td th:text="${e.bodySize} + ' B'">0 B</td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${recentEvents.isEmpty()}" class="text-muted small">Nothing captured yet.</p>
+
+    <h2 class="h5 mt-4">Recent delivery failures</h2>
+    <table class="table table-sm small" th:if="${!recentFailures.isEmpty()}">
+        <thead><tr><th>Completed</th><th>Event</th><th>Trigger</th><th>Status</th><th>HTTP</th><th>Error</th></tr></thead>
+        <tbody>
+        <tr th:each="a : ${recentFailures}">
+            <td th:text="${a.completedAt != null} ? ${#temporals.format(a.completedAt, 'yyyy-MM-dd HH:mm:ss')} : '-'">time</td>
+            <td><a th:href="@{/events/{id}(id=${a.capturedWebhookId})}" th:text="${#strings.substring(a.capturedWebhookId, 0, 8)}">id</a></td>
+            <td th:text="${a.triggerType}">trigger</td>
+            <td><span th:replace="~{fragments :: deliveryBadge(${a.status})}"></span></td>
+            <td th:text="${a.httpStatus} ?: '-'">500</td>
+            <td th:text="${a.errorMessage}">error</td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${recentFailures.isEmpty()}" class="text-muted small">No failed deliveries.</p>
+</main>
+</body>
+</html>

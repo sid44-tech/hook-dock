@@ -1,6 +1,7 @@
 package dev.hookdock.endpoints;
 
 import java.time.Clock;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +26,11 @@ public class EndpointService {
     @Transactional(readOnly = true)
     public List<WebhookEndpoint> listForProject(UUID projectId) {
         return endpoints.findByProjectIdOrderByCreatedAtAsc(projectId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WebhookEndpoint> listForProjects(Collection<UUID> projectIds) {
+        return projectIds.isEmpty() ? List.of() : endpoints.findByProjectIdIn(projectIds);
     }
 
     @Transactional(readOnly = true)
