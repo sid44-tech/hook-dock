@@ -16,3 +16,10 @@ hookdock:
     redacted-headers:
       - authorization
       - cookie
+  destinations:
+    # Delivery tests send to a stub server on 127.0.0.1
+    allow-private-networks: true
+  delivery:
+    # Tests drive the worker by calling poll() directly
+    poll-interval: PT1H
+    request-timeout: PT1S
