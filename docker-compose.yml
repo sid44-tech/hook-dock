@@ -9,6 +9,23 @@ services:
       - "5432:5432"
     volumes:
       - hookdock-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d hookdock"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    profiles: ["app"]
+    env_file: .env
+    environment:
+      HOOKDOCK_DB_URL: jdbc:postgresql://postgres:5432/hookdock
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   hookdock-pg:

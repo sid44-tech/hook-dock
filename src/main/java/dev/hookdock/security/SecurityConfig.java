@@ -15,7 +15,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/in/**").permitAll()
-                        .requestMatchers("/login", "/css/**", "/error").permitAll()
+                        .requestMatchers("/login", "/css/**", "/error", "/actuator/health").permitAll()
                         .anyRequest().authenticated())
                 // Webhook senders can't send a CSRF token. /in/** is authenticated by the
                 // endpoint token instead; every browser form keeps CSRF protection.
