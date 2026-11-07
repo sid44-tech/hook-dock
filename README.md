@@ -51,6 +51,16 @@ Then:
 
 3. Open the project's events page to inspect it.
 
+### Sending a batch of test requests
+
+`scripts/load_test.py` sends a series of JSON webhooks to a receive URL and prints the outcome of each one (captured, rate limited, not found, too large or connection error) with a summary at the end. It only needs Python 3.8+, no extra packages, and works on macOS, Linux and Windows.
+
+```bash
+python3 scripts/load_test.py http://localhost:8080/in/<token> --count 50 --delay 0.1
+```
+
+On Windows, run it with `py` or `python` instead of `python3`. `--count` is the number of requests (default 10), `--delay` is the pause between requests in seconds (default 0.5, use 0 for none) and `--timeout` is the per-request timeout (default 10). Each request body includes its sequence number, so you can match the results to captured events.
+
 ### Trying forwarding locally
 
 The outbound policy blocks loopback and private addresses by default. To forward to a service on your own machine, set `HOOKDOCK_ALLOW_PRIVATE_DESTINATIONS=true` in `.env` and restart. Then add a destination like `http://localhost:9000/webhooks`, pick it in the endpoint's "Forward to" dropdown, and send another event.
