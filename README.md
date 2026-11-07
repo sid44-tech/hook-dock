@@ -26,7 +26,7 @@ HookDock is a single Spring Boot application backed by PostgreSQL. It is meant f
 You need JDK 21 and Docker.
 
 ```bash
-cp .env.example .env        # then edit the passwords in .env
+cp .env.example .env        # then fill in the DB and admin credentials
 docker compose up -d postgres
 set -a; source .env; set +a
 ./mvnw spring-boot:run
@@ -63,9 +63,9 @@ On Windows, run it with `py` or `python` instead of `python3`. `--count` is the 
 
 ### Trying forwarding locally
 
-The outbound policy blocks loopback and private addresses by default. To forward to a service on your own machine, set `HOOKDOCK_ALLOW_PRIVATE_DESTINATIONS=true` in `.env` and restart. Then add a destination like `http://localhost:9000/webhooks`, pick it in the endpoint's "Forward to" dropdown, and send another event.
+The outbound policy blocks loopback and private addresses unless `HOOKDOCK_ALLOW_PRIVATE_DESTINATIONS=true`. `.env.example` sets it to `true` so you can forward to a service on your own machine straight away. Add a destination like `http://localhost:9000/webhooks` (or `http://host.docker.internal:9000/webhooks` when HookDock runs in Docker), pick it in the endpoint's "Forward to" dropdown, and send another event.
 
-Do not enable this setting on a HookDock instance that other people can reach.
+Set it to `false` on any HookDock instance that other people can reach. If the variable isn't set at all, it defaults to `false`.
 
 ## Configuration
 
