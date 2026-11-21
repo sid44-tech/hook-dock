@@ -13,6 +13,9 @@ target/
 # OS
 .DS_Store
 
+# Local H2 database (used when HOOKDOCK_DB_URL is not set)
+data/
+
 # Local configuration / secrets
 .env
 *.local.yml

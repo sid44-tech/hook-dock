@@ -72,7 +72,8 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <!-- Used for the local file database when no PostgreSQL URL is set, and by the tests. -->
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 

@@ -8,7 +8,7 @@ Point GitHub, Stripe or any other webhook sender at a HookDock URL and you get:
 - optional forwarding to your own service, with the response, status code, latency or error recorded for every attempt
 - one-click replay of a captured event once you've fixed your handler
 
-HookDock is a single Spring Boot application backed by PostgreSQL. It is meant for individual developers and small teams who want something simple they can run themselves.
+HookDock is a single Spring Boot application backed by PostgreSQL, or by a local H2 file when you just want to try it out. It is meant for individual developers and small teams who want something simple they can run themselves.
 
 ## Features
 
@@ -24,16 +24,25 @@ HookDock is a single Spring Boot application backed by PostgreSQL. It is meant f
 
 ## Quick start
 
-You need JDK 21 and Docker.
+The quickest way needs only JDK 21, no Docker or PostgreSQL:
 
 ```bash
-cp .env.example .env        # then fill in the DB and admin credentials
+cp .env.example .env        # then fill in the admin credentials
+set -a; source .env; set +a
+./mvnw spring-boot:run
+```
+
+With `HOOKDOCK_DB_URL` left empty, HookDock stores everything in a local H2 file, `data/hookdock.mv.db` in the folder you start it from, and logs a warning saying so. H2 runs in PostgreSQL mode with the same migrations. To start over, stop the app and delete the `data/` folder. The file is only meant for trying HookDock out and local development; use PostgreSQL for anything you rely on.
+
+To use PostgreSQL locally, set `HOOKDOCK_DB_URL=jdbc:postgresql://localhost:5432/hookdock` and the DB username and password in `.env`, then:
+
+```bash
 docker compose up -d postgres
 set -a; source .env; set +a
 ./mvnw spring-boot:run
 ```
 
-Or run everything in containers:
+Or run everything in containers (this always uses PostgreSQL):
 
 ```bash
 docker compose --profile app up --build
@@ -76,7 +85,8 @@ All configuration comes from environment variables (see `.env.example`). `.env` 
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `HOOKDOCK_DB_URL` | `jdbc:postgresql://localhost:5432/hookdock` | JDBC URL |
+| `HOOKDOCK_DB_URL` | _(none)_ | PostgreSQL JDBC URL, e.g. `jdbc:postgresql://localhost:5432/hookdock`. When empty, a local H2 file database is used |
+| `HOOKDOCK_LOCAL_DB_PATH` | `./data/hookdock` | Where the local H2 database is stored when `HOOKDOCK_DB_URL` is empty (H2 adds `.mv.db`) |
 | `HOOKDOCK_DB_USERNAME` | `hookdock` | Database user |
 | `HOOKDOCK_DB_PASSWORD` | _(none)_ | Database password |
 | `HOOKDOCK_ADMIN_USERNAME` | _(none)_ | First admin account, created only if no users exist |

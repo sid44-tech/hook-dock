@@ -2,7 +2,9 @@ spring:
   application:
     name: hookdock
   datasource:
-    url: ${HOOKDOCK_DB_URL:jdbc:postgresql://localhost:5432/hookdock}
+    # Leave HOOKDOCK_DB_URL unset to use a local H2 file database instead
+    # (see hookdock.local-db below).
+    url: ${HOOKDOCK_DB_URL:}
     username: ${HOOKDOCK_DB_USERNAME:hookdock}
     password: ${HOOKDOCK_DB_PASSWORD:}
   jpa:
@@ -25,6 +27,11 @@ management:
       show-details: never
 
 hookdock:
+  local-db:
+    # Where the H2 file database lives when HOOKDOCK_DB_URL is not set. H2
+    # adds ".mv.db" to the name. Relative paths start from the folder the
+    # app is started in.
+    path: ${HOOKDOCK_LOCAL_DB_PATH:./data/hookdock}
   admin:
     username: ${HOOKDOCK_ADMIN_USERNAME:}
     password: ${HOOKDOCK_ADMIN_PASSWORD:}
