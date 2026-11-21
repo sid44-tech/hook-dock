@@ -41,6 +41,8 @@ docker compose --profile app up --build
 
 Open http://localhost:8080 and sign in with `HOOKDOCK_ADMIN_USERNAME` / `HOOKDOCK_ADMIN_PASSWORD` from your `.env`. The admin account is only created the first time the app starts with an empty user table.
 
+If you got the code from a zip file rather than `git clone`, `./mvnw` and the scripts may have lost their executable bit and fail with `Permission denied`. Run `chmod +x mvnw scripts/*.sh scripts/*.py`, or call them through their interpreter instead (`sh mvnw ...`, `bash scripts/send-sample-webhook.sh ...`, `python3 scripts/load_test.py ...`). The Docker build sets the bit itself, so `docker compose --profile app up --build` works either way.
+
 Then:
 
 1. Create a project and add an endpoint. Copy the receive URL - it is only shown once.
