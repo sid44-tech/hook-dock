@@ -14,7 +14,6 @@ What's left after the initial capture / forward / replay work. Estimates are rou
 ## Capture
 
 - Retention cleanup job. `retention_days` is stored per endpoint but nothing deletes old events yet. Add a UI to edit it. (~3h)
-- Per-endpoint inbound rate limiting. (~2h)
 - Endpoint token rotation (new URL, old one disabled). (~1.5h)
 - Endpoint delete, with confirmation. (~1h)
 

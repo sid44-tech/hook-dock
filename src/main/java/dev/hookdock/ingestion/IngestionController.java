@@ -2,6 +2,7 @@ package dev.hookdock.ingestion;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,8 +21,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import dev.hookdock.ratelimit.RateLimitStatus;
+
 @RestController
 public class IngestionController {
+
+    static final String RATE_LIMIT_LIMIT = "RateLimit-Limit";
+    static final String RATE_LIMIT_REMAINING = "RateLimit-Remaining";
+    static final String RATE_LIMIT_RESET = "RateLimit-Reset";
 
     private final CaptureService captureService;
     private final long maxBodyBytes;
@@ -46,10 +54,41 @@ public class IngestionController {
                 readBody(request),
                 request.getContentType());
 
-        return captureService.capture(token, inbound)
-                .<ResponseEntity<Map<String, Object>>>map(event -> ResponseEntity.ok(
-                        Map.of("status", "captured", "id", event.getId())))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "not_found")));
+        return switch (captureService.capture(token, inbound)) {
+            case CaptureResult.Captured captured -> {
+                ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+                captured.rateLimit().ifPresent(status -> rateLimitHeaders(response, status));
+                yield response.body(Map.of("status", "captured", "id", captured.event().getId()));
+            }
+            case CaptureResult.NotFound notFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("status", "not_found"));
+            case CaptureResult.RateLimited limited -> rateLimitHeaders(
+                    ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS), limited.rateLimit())
+                    .header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds(limited.rateLimit().resetAfter())))
+                    .body(Map.of("status", "rate_limited"));
+        };
+    }
+
+    /*
+     * RateLimit-Limit / -Remaining / -Reset as in the IETF httpapi rate limit
+     * draft (the widely deployed three-header form). Reset is delta seconds,
+     * not a timestamp: the time until the oldest counted request leaves the
+     * rolling window, which on a 429 is the same as Retry-After.
+     */
+    private static ResponseEntity.BodyBuilder rateLimitHeaders(ResponseEntity.BodyBuilder response,
+            RateLimitStatus status) {
+        return response
+                .header(RATE_LIMIT_LIMIT, String.valueOf(status.limit()))
+                .header(RATE_LIMIT_REMAINING, String.valueOf(status.remaining()))
+                .header(RATE_LIMIT_RESET, String.valueOf(seconds(status.resetAfter())));
+    }
+
+    // Whole seconds, rounded up so a client that waits this long is never early,
+    // and at least 1 so a client never retries immediately.
+    private static long seconds(Duration duration) {
+        long nanos = duration.toNanos();
+        long seconds = nanos / 1_000_000_000L + (nanos % 1_000_000_000L == 0 ? 0 : 1);
+        return Math.max(1, seconds);
     }
 
     @ExceptionHandler(PayloadTooLargeException.class)

@@ -16,6 +16,11 @@ hookdock:
     redacted-headers:
       - authorization
       - cookie
+  rate-limit:
+    # Small so the ingestion tests can hit the limit with a handful of requests.
+    # Every test uses its own endpoint, so they don't throttle each other.
+    requests: 5
+    period: 1m
   destinations:
     # Delivery tests send to a stub server on 127.0.0.1
     allow-private-networks: true

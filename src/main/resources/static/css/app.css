@@ -10,3 +10,9 @@ pre.payload {
     overflow: auto;
     font-size: 0.85rem;
 }
+
+/* Endpoint rate limit field: wide enough for the "20 (default)" placeholder. */
+.rate-limit {
+    width: 10.5rem;
+    flex-wrap: nowrap;
+}

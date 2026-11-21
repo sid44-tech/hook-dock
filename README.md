@@ -14,6 +14,7 @@ HookDock is a single Spring Boot application backed by PostgreSQL. It is meant f
 
 - **Projects and endpoints.** Each endpoint gets a random 256-bit receive URL (`/in/<token>`). Only a SHA-256 hash of the token is stored; the URL is shown once on creation.
 - **Capture.** Raw request bytes are stored as received, so form bodies and signed payloads survive byte for byte. Credential headers (`Authorization`, `Cookie`, ...) are redacted before they are saved. Bodies over the size limit get a `413`.
+- **Rate limiting.** Each endpoint accepts at most 20 requests in any rolling minute by default, and the limit can be changed per endpoint on the project page. Responses carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` headers. Requests over the limit get a `429` with a `Retry-After` header and are not stored or forwarded, so a runaway test script can't flood the database. Recent rejections are listed on the dashboard. See [Rate limiting](#rate-limiting).
 - **Inspection.** Paginated event list per project, event detail page with headers, query string, raw body and pretty-printed JSON. Common providers (GitHub, Stripe, Shopify, Slack) are detected from their headers.
 - **Approved destinations.** Forwarding and replay only send to destinations saved on the project. URLs are checked against an outbound policy (scheme, port, credentials in the URL, and every resolved IP must be public) when they are saved and again before each send.
 - **Forwarding.** An endpoint can forward each captured event to a destination. Deliveries are queued in the database in the same transaction as the capture and sent by a background worker. Redirects are never followed.
@@ -53,7 +54,7 @@ Then:
 
 ### Sending a batch of test requests
 
-`scripts/load_test.py` sends a series of JSON webhooks to a receive URL and prints the outcome of each one (captured, rate limited, not found, too large or connection error) with a summary at the end. It only needs Python 3.8+, no extra packages, and works on macOS, Linux and Windows.
+`scripts/load_test.py` sends a series of JSON webhooks to a receive URL and prints the outcome of each one (captured, rate limited, not found, too large or connection error) with a summary at the end. Each line also shows the endpoint's `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` headers, or `-` when the response has none (for example a `404`). It only needs Python 3.8+, no extra packages, and works on macOS, Linux and Windows.
 
 ```bash
 python3 scripts/load_test.py http://localhost:8080/in/<token> --count 50 --delay 0.1
@@ -80,9 +81,59 @@ All configuration comes from environment variables (see `.env.example`). `.env` 
 | `HOOKDOCK_ADMIN_PASSWORD` | _(none)_ | Password for the first admin account |
 | `HOOKDOCK_ALLOW_PRIVATE_DESTINATIONS` | `false` | Allow sending to loopback/private IPs (local dev only) |
 | `HOOKDOCK_MAX_BODY_SIZE` | `1MB` | Largest inbound body that will be captured |
+| `HOOKDOCK_RATE_LIMIT_ENABLED` | `true` | Turn the per-endpoint rate limit on or off |
+| `HOOKDOCK_RATE_LIMIT_REQUESTS` | `20` | Default for the most requests an endpoint may accept in any rolling period (can be overridden per endpoint) |
+| `HOOKDOCK_RATE_LIMIT_PERIOD` | `1m` | Length of the rolling window (e.g. `30s`, `1m`, `PT5M`) |
 | `HOOKDOCK_PORT` | `8080` | HTTP port |
 
 Delivery timeouts, worker poll interval and batch size are under `hookdock.delivery` in `application.yml`.
+
+### Rate limiting
+
+Every endpoint is limited separately, using a rolling window: an endpoint accepts at most `HOOKDOCK_RATE_LIMIT_REQUESTS` requests in any `HOOKDOCK_RATE_LIMIT_PERIOD`-long span of time (20 in any 60 seconds by default). There is no burst allowance and no fixed boundary where the count resets; a slot frees up exactly one period after the request that used it. Only accepted requests count, so retrying while limited doesn't extend the wait.
+
+#### Per-endpoint limits
+
+To give one endpoint a different limit, enter it in the **Rate limit** field next to **Forward to** in the project's endpoint table and click **Save**. It applies to that endpoint only. To go back to the server default, leave the field blank or enter the default value itself; either way the override is removed, the field shows the default as its placeholder again, and the endpoint follows the server setting if it changes later. Overrides are whole numbers from 1 to 10,000 per period and take effect on the endpoint's next request. Requests already received in the current window still count, so lowering a limit below what was just used blocks the endpoint until it is under the new limit, and raising it frees up only the difference.
+
+#### Response headers
+
+Every response from an endpoint that has a quota carries its current state:
+
+```
+HTTP/1.1 200 OK
+RateLimit-Limit: 20
+RateLimit-Remaining: 13
+RateLimit-Reset: 42
+
+{"status":"captured","id":"..."}
+```
+
+| Header | Meaning |
+| --- | --- |
+| `RateLimit-Limit` | Most requests the endpoint accepts in any rolling period (its override, or the default) |
+| `RateLimit-Remaining` | How many more requests would be accepted right now |
+| `RateLimit-Reset` | Seconds (not a timestamp) until the oldest counted request leaves the window, i.e. until `RateLimit-Remaining` next goes up |
+
+These follow the three-header form of the IETF [RateLimit header fields](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/) draft, which is still a draft. A request over the limit gets
+
+```
+HTTP/1.1 429 Too Many Requests
+RateLimit-Limit: 20
+RateLimit-Remaining: 0
+RateLimit-Reset: 42
+Retry-After: 42
+
+{"status":"rate_limited"}
+```
+
+`Retry-After` is the standard HTTP header and always equals `RateLimit-Reset` on a `429`. Nothing is stored or forwarded for a rejected request. `404` and `413` responses, and every response when the limiter is disabled, have no rate limit headers. Unknown or disabled endpoints still answer `404` and are not tracked. Limiter state is kept in memory, so it resets when the app restarts and is per instance. Keep in mind that not every provider retries on `429` (GitHub doesn't, Stripe does), so set the limit well above the rate your real senders use.
+
+#### Recent rejections
+
+The dashboard's **Recent rejections** section lists the latest rate-limited requests across all of your endpoints, newest first, with the project, endpoint, method and the limit that applied. Like the limiter's state, this list is kept in memory (the last 10 per endpoint) rather than in the database, so a flood of rejected requests never turns into a flood of database writes. It starts empty when the server restarts. Requests to unknown tokens aren't listed, because they don't belong to anyone.
+
+The **Rejected (24h)** card at the top of the dashboard counts every rate-limited request to your endpoints in the last 24 hours, not just the ones in the list. It is kept in memory too, as one counter per endpoint per minute, so it is accurate to the minute, uses bounded memory however many requests are rejected, and only covers the time since the server last started.
 
 ## Architecture
 
@@ -104,6 +155,7 @@ dev.hookdock
 ├── projects/       projects and owner-scoped access checks
 ├── endpoints/      inbound endpoints, token generation and hashing
 ├── ingestion/      /in/{token} controller, capture, header redaction, size limits
+├── ratelimit/      per-endpoint inbound rate limiter (in-memory rolling window)
 ├── events/         captured webhooks, event list/detail, payload formatting
 ├── destinations/   approved targets and the outbound URL/IP policy
 ├── delivery/       delivery attempts, worker, HTTP sender, replay

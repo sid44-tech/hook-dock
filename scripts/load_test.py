@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 Sends a series of test webhooks to a HookDock receive URL and reports which
-were captured and which were rejected (rate limited, not found, too large...).
+were captured and which were rejected (rate limited, not found, too large...),
+along with the endpoint's rate limit headers (RateLimit-Limit,
+RateLimit-Remaining, RateLimit-Reset) from each response.
 
 Uses only the Python standard library, so it runs on macOS, Linux and Windows
 with any Python 3.8+.
@@ -26,6 +28,9 @@ LABELS = {
     429: "RATE LIMITED",
 }
 
+# Response headers worth reporting. Header lookups are case-insensitive.
+REPORTED_HEADERS = ("RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset", "Retry-After")
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Send repeated test webhooks to a HookDock endpoint.")
@@ -47,7 +52,11 @@ def parse_args():
 
 
 def send(url, number, timeout):
-    """Returns (status, retry_after, body_text, elapsed_ms). status is None on connection errors."""
+    """Returns (status, headers, body_text, elapsed_ms).
+
+    headers maps each name in REPORTED_HEADERS to its value, or None if the
+    response didn't include it. status is None on connection errors.
+    """
     payload = {
         "test": "load_test",
         "sequence": number,
@@ -67,14 +76,18 @@ def send(url, number, timeout):
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             body = response.read().decode("utf-8", errors="replace")
-            return response.status, response.headers.get("Retry-After"), body, elapsed_ms(started)
+            return response.status, reported_headers(response.headers), body, elapsed_ms(started)
     except urllib.error.HTTPError as e:
         # 4xx/5xx still carry a status and body we want to report.
         body = e.read().decode("utf-8", errors="replace")
-        return e.code, e.headers.get("Retry-After"), body, elapsed_ms(started)
+        return e.code, reported_headers(e.headers), body, elapsed_ms(started)
     except (urllib.error.URLError, OSError) as e:
         reason = getattr(e, "reason", e)
-        return None, None, str(reason), elapsed_ms(started)
+        return None, reported_headers(None), str(reason), elapsed_ms(started)
+
+
+def reported_headers(headers):
+    return {name: headers.get(name) if headers is not None else None for name in REPORTED_HEADERS}
 
 
 def elapsed_ms(started):
@@ -98,19 +111,25 @@ def describe(status, body):
 def main():
     args = parse_args()
     print("Sending %d request(s) to %s with %.2fs delay\n" % (args.count, args.url, args.delay))
-    print("%5s  %6s  %8s  %s" % ("#", "status", "time", "result"))
+    print("%5s  %6s  %8s  %5s  %9s  %5s  %s" % ("#", "status", "time", "limit", "remaining", "reset", "result"))
 
     counts = {}
     run_started = time.perf_counter()
     try:
         for number in range(1, args.count + 1):
-            status, retry_after, body, ms = send(args.url, number, args.timeout)
+            status, headers, body, ms = send(args.url, number, args.timeout)
             result = describe(status, body)
-            if retry_after:
-                result += "  (retry after %ss)" % retry_after
+            if headers["Retry-After"]:
+                result += "  (retry after %ss)" % headers["Retry-After"]
             if status is None:
                 result += "  " + body
-            print("%5d  %6s  %6dms  %s" % (number, status if status is not None else "-", ms, result))
+            # Responses without rate limit headers (404, 413, limiter off, connection
+            # errors) show "-" in those columns.
+            limit = headers["RateLimit-Limit"] or "-"
+            remaining = headers["RateLimit-Remaining"] or "-"
+            reset = headers["RateLimit-Reset"] + "s" if headers["RateLimit-Reset"] else "-"
+            print("%5d  %6s  %6dms  %5s  %9s  %5s  %s"
+                  % (number, status if status is not None else "-", ms, limit, remaining, reset, result))
 
             key = LABELS.get(status, "ERROR" if status is None else "HTTP %d" % status)
             counts[key] = counts.get(key, 0) + 1

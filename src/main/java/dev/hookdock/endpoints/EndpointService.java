@@ -9,17 +9,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.hookdock.common.NotFoundException;
+import dev.hookdock.ratelimit.RateLimitProperties;
 
 @Service
 public class EndpointService {
 
     private final WebhookEndpointRepository endpoints;
     private final TokenGenerator tokenGenerator;
+    private final RateLimitProperties rateLimitProperties;
     private final Clock clock;
 
-    public EndpointService(WebhookEndpointRepository endpoints, TokenGenerator tokenGenerator, Clock clock) {
+    public EndpointService(WebhookEndpointRepository endpoints, TokenGenerator tokenGenerator,
+            RateLimitProperties rateLimitProperties, Clock clock) {
         this.endpoints = endpoints;
         this.tokenGenerator = tokenGenerator;
+        this.rateLimitProperties = rateLimitProperties;
         this.clock = clock;
     }
 
@@ -59,5 +63,20 @@ public class EndpointService {
     @Transactional
     public void setEnabled(UUID endpointId, boolean enabled) {
         get(endpointId).setEnabled(enabled);
+    }
+
+    /**
+     * Sets this endpoint's rate limit override, or clears it (back to the
+     * server default) when {@code requests} is null. A value equal to the
+     * server's configured default also clears the override, so the endpoint
+     * is shown as using the default and follows it if the default changes
+     * later. Takes effect on the endpoint's next request. The caller is
+     * responsible for access checks.
+     */
+    @Transactional
+    public void setRateLimit(UUID endpointId, Integer requests) {
+        // Compare values, not references: both sides are Integer objects.
+        boolean isDefault = requests != null && requests.equals(rateLimitProperties.requests());
+        get(endpointId).setRateLimitRequests(isDefault ? null : requests);
     }
 }

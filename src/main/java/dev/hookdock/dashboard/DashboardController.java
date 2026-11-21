@@ -14,8 +14,11 @@ import dev.hookdock.delivery.DeliveryService;
 import dev.hookdock.endpoints.EndpointService;
 import dev.hookdock.endpoints.WebhookEndpoint;
 import dev.hookdock.events.EventService;
+import dev.hookdock.ingestion.RecentRejections;
 import dev.hookdock.projects.Project;
 import dev.hookdock.projects.ProjectService;
+import dev.hookdock.projects.RateLimitView;
+import dev.hookdock.ratelimit.RateLimitProperties;
 
 @Controller
 public class DashboardController {
@@ -26,13 +29,18 @@ public class DashboardController {
     private final EndpointService endpointService;
     private final EventService eventService;
     private final DeliveryService deliveryService;
+    private final RecentRejections recentRejections;
+    private final RateLimitView rateLimit;
 
     public DashboardController(ProjectService projectService, EndpointService endpointService,
-            EventService eventService, DeliveryService deliveryService) {
+            EventService eventService, DeliveryService deliveryService, RecentRejections recentRejections,
+            RateLimitProperties rateLimitProperties) {
         this.projectService = projectService;
         this.endpointService = endpointService;
         this.eventService = eventService;
         this.deliveryService = deliveryService;
+        this.recentRejections = recentRejections;
+        this.rateLimit = RateLimitView.from(rateLimitProperties);
     }
 
     @GetMapping("/")
@@ -46,6 +54,10 @@ public class DashboardController {
         model.addAttribute("endpointCount", endpoints.size());
         model.addAttribute("eventCount", eventService.countForEndpoints(endpointIds));
         model.addAttribute("recentEvents", eventService.recentForEndpoints(endpointIds, RECENT_LIMIT));
+        // endpointIds only holds the signed-in user's endpoints, so this never shows anyone else's.
+        model.addAttribute("recentRejections", recentRejections.recentForEndpoints(endpointIds, RECENT_LIMIT));
+        model.addAttribute("rejectedLast24h", recentRejections.countInWindow(endpointIds));
+        model.addAttribute("rateLimit", rateLimit);
         model.addAttribute("recentFailures", deliveryService.recentFailures(endpointIds, RECENT_LIMIT));
         model.addAttribute("endpointsById", endpoints.stream()
                 .collect(Collectors.toMap(WebhookEndpoint::getId, Function.identity())));

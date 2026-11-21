@@ -6,29 +6,36 @@
 <main class="container">
     <h1 class="h3 mb-3">Dashboard</h1>
 
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
+    <div class="row row-cols-2 row-cols-md-5 g-3 mb-4">
+        <div class="col">
             <div class="border rounded p-3">
                 <div class="small text-muted">Projects</div>
                 <div class="fs-4" th:text="${projects.size()}">0</div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col">
             <div class="border rounded p-3">
                 <div class="small text-muted">Endpoints</div>
                 <div class="fs-4" th:text="${endpointCount}">0</div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col">
             <div class="border rounded p-3">
                 <div class="small text-muted">Captured events</div>
                 <div class="fs-4" th:text="${eventCount}">0</div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col">
             <div class="border rounded p-3">
                 <div class="small text-muted">Recent delivery failures</div>
                 <div class="fs-4" th:text="${recentFailures.size()}">0</div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="border rounded p-3"
+                 title="Requests to your endpoints turned away by the rate limit in the last 24 hours, since the server last started">
+                <div class="small text-muted">Rejected (24h)</div>
+                <div class="fs-4" th:text="${rejectedLast24h}">0</div>
             </div>
         </div>
     </div>
@@ -53,6 +60,26 @@
         </tbody>
     </table>
     <p th:if="${recentEvents.isEmpty()}" class="text-muted small">Nothing captured yet.</p>
+
+    <h2 class="h5 mt-4">Recent rejections</h2>
+    <p class="small text-muted">
+        Requests to your endpoints that were turned away and not stored. This list is kept in memory and
+        starts empty when the server restarts.
+    </p>
+    <table class="table table-sm small" th:if="${!recentRejections.isEmpty()}">
+        <thead><tr><th>Rejected</th><th>Project</th><th>Endpoint</th><th>Method</th><th>Reason</th><th>Limit</th></tr></thead>
+        <tbody>
+        <tr th:each="r : ${recentRejections}" th:with="ep=${endpointsById[r.endpointId]}">
+            <td th:text="${#temporals.format(r.rejectedAt, 'yyyy-MM-dd HH:mm:ss')}">time</td>
+            <td th:text="${projectsById[ep.projectId].name}">project</td>
+            <td th:text="${ep.name}">endpoint</td>
+            <td th:text="${r.method}">POST</td>
+            <td th:text="${r.reason.label}">Rate limited</td>
+            <td th:text="|${r.limit} / ${rateLimit.periodLabel}|">20 / min</td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${recentRejections.isEmpty()}" class="text-muted small">No rejected requests.</p>
 
     <h2 class="h5 mt-4">Recent delivery failures</h2>
     <table class="table table-sm small" th:if="${!recentFailures.isEmpty()}">

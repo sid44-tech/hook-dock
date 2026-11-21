@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import dev.hookdock.destinations.DestinationService;
 import dev.hookdock.endpoints.EndpointService;
+import dev.hookdock.ratelimit.RateLimitProperties;
 
 @Controller
 @RequestMapping("/projects")
@@ -23,12 +24,14 @@ public class ProjectController {
     private final ProjectService projectService;
     private final EndpointService endpointService;
     private final DestinationService destinationService;
+    private final RateLimitView rateLimit;
 
     public ProjectController(ProjectService projectService, EndpointService endpointService,
-            DestinationService destinationService) {
+            DestinationService destinationService, RateLimitProperties rateLimitProperties) {
         this.projectService = projectService;
         this.endpointService = endpointService;
         this.destinationService = destinationService;
+        this.rateLimit = RateLimitView.from(rateLimitProperties);
     }
 
     @GetMapping
@@ -53,6 +56,7 @@ public class ProjectController {
         model.addAttribute("project", projectService.getProject(projectId));
         model.addAttribute("endpoints", endpointService.listForProject(projectId));
         model.addAttribute("destinations", destinationService.listForProject(projectId));
+        model.addAttribute("rateLimit", rateLimit);
         return "projects/detail";
     }
 }

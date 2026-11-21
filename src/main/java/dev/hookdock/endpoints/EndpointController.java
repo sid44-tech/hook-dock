@@ -67,4 +67,38 @@ public class EndpointController {
         endpointService.configureForwarding(endpointId, destinationId);
         return "redirect:/projects/" + endpoint.getProjectId();
     }
+
+    /**
+     * Saves the endpoint's rate limit override. A blank value clears the
+     * override so the endpoint uses the server default again.
+     */
+    @PostMapping("/endpoints/{endpointId}/rate-limit")
+    public String rateLimit(@PathVariable UUID endpointId, @RequestParam(required = false) String rateLimit,
+            RedirectAttributes redirect) {
+        WebhookEndpoint endpoint = endpointService.get(endpointId);
+        projectService.getProject(endpoint.getProjectId());
+
+        String value = rateLimit == null ? "" : rateLimit.trim();
+        Integer requests = null;
+        if (!value.isEmpty()) {
+            requests = parseRateLimit(value);
+            if (requests == null) {
+                redirect.addFlashAttribute("error", "Rate limit must be a whole number from 1 to "
+                        + WebhookEndpoint.MAX_RATE_LIMIT + ", or blank to use the default.");
+                return "redirect:/projects/" + endpoint.getProjectId();
+            }
+        }
+        endpointService.setRateLimit(endpointId, requests);
+        return "redirect:/projects/" + endpoint.getProjectId();
+    }
+
+    // Null when the value isn't a whole number in the allowed range.
+    private static Integer parseRateLimit(String value) {
+        try {
+            int requests = Integer.parseInt(value);
+            return requests >= 1 && requests <= WebhookEndpoint.MAX_RATE_LIMIT ? requests : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 }

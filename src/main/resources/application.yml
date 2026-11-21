@@ -36,6 +36,13 @@ hookdock:
       - cookie
       - x-api-key
       - x-auth-token
+  rate-limit:
+    # Per endpoint: at most `requests` accepted in any rolling `period`. Over
+    # the limit the endpoint answers 429 with a Retry-After header and stores
+    # nothing.
+    enabled: ${HOOKDOCK_RATE_LIMIT_ENABLED:true}
+    requests: ${HOOKDOCK_RATE_LIMIT_REQUESTS:20}
+    period: ${HOOKDOCK_RATE_LIMIT_PERIOD:1m}
   destinations:
     # Only enable for local development. Allows forwarding to localhost/private IPs.
     allow-private-networks: ${HOOKDOCK_ALLOW_PRIVATE_DESTINATIONS:false}

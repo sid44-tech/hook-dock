@@ -12,6 +12,9 @@ import dev.hookdock.endpoints.WebhookEndpoint;
 import dev.hookdock.endpoints.WebhookEndpointRepository;
 import dev.hookdock.events.CapturedWebhook;
 import dev.hookdock.events.CapturedWebhookRepository;
+import dev.hookdock.ratelimit.RateLimitDecision;
+import dev.hookdock.ratelimit.RateLimitStatus;
+import dev.hookdock.ratelimit.RateLimiter;
 
 @Service
 public class CaptureService {
@@ -20,28 +23,45 @@ public class CaptureService {
     private final CapturedWebhookRepository events;
     private final HeaderRedactor headerRedactor;
     private final DeliveryService deliveryService;
+    private final RateLimiter rateLimiter;
+    private final RecentRejections recentRejections;
     private final Clock clock;
 
     public CaptureService(WebhookEndpointRepository endpoints, CapturedWebhookRepository events,
-            HeaderRedactor headerRedactor, DeliveryService deliveryService, Clock clock) {
+            HeaderRedactor headerRedactor, DeliveryService deliveryService, RateLimiter rateLimiter,
+            RecentRejections recentRejections, Clock clock) {
         this.endpoints = endpoints;
         this.events = events;
         this.headerRedactor = headerRedactor;
         this.deliveryService = deliveryService;
+        this.rateLimiter = rateLimiter;
+        this.recentRejections = recentRejections;
         this.clock = clock;
     }
 
     /**
      * Persists the inbound request, and queues a forward if the endpoint has one
-     * configured. Returns empty if the token doesn't match an enabled endpoint,
-     * in which case nothing is stored.
+     * configured. Nothing is stored when the token doesn't match an enabled
+     * endpoint or the endpoint is over its rate limit.
+     * <p>
+     * The limit is checked after the endpoint lookup so that unknown tokens
+     * never create limiter state and a disabled endpoint still answers 404.
      */
     @Transactional
-    public Optional<CapturedWebhook> capture(String token, InboundRequest request) {
+    public CaptureResult capture(String token, InboundRequest request) {
         Optional<WebhookEndpoint> endpoint = endpoints.findByTokenHash(TokenHasher.hash(token))
                 .filter(WebhookEndpoint::isEnabled);
         if (endpoint.isEmpty()) {
-            return Optional.empty();
+            return new CaptureResult.NotFound();
+        }
+
+        RateLimitDecision decision = rateLimiter.tryAcquire(
+                endpoint.get().getId(), endpoint.get().getRateLimitRequests());
+        if (!decision.allowed()) {
+            RateLimitStatus status = decision.status().orElseThrow();
+            recentRejections.record(new Rejection(endpoint.get().getId(), clock.instant(), request.method(),
+                    RejectionReason.RATE_LIMITED, status.limit()));
+            return new CaptureResult.RateLimited(status);
         }
 
         ProviderDetector.ProviderInfo provider = ProviderDetector.detect(request.headers());
@@ -58,6 +78,6 @@ public class CaptureService {
                 provider.eventId());
         CapturedWebhook saved = events.save(event);
         deliveryService.enqueueAutoForward(saved, endpoint.get());
-        return Optional.of(saved);
+        return new CaptureResult.Captured(saved, decision.status());
     }
 }

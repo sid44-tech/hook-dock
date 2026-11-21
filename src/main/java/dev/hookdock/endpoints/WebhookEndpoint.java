@@ -12,6 +12,12 @@ import jakarta.persistence.Table;
 @Table(name = "webhook_endpoint")
 public class WebhookEndpoint {
 
+    /**
+     * Highest per-endpoint rate limit override. The limiter keeps one
+     * timestamp per allowed request, so this also caps its memory per endpoint.
+     */
+    public static final int MAX_RATE_LIMIT = 10_000;
+
     @Id
     private UUID id;
 
@@ -32,6 +38,10 @@ public class WebhookEndpoint {
 
     @Column(name = "forward_destination_id")
     private UUID forwardDestinationId;
+
+    /** Requests per rate limit window for this endpoint; null uses the server default. */
+    @Column(name = "rate_limit_requests")
+    private Integer rateLimitRequests;
 
     @Column(name = "retention_days", nullable = false)
     private int retentionDays = 30;
@@ -85,6 +95,21 @@ public class WebhookEndpoint {
     public void configureForwarding(UUID destinationId) {
         this.forwardDestinationId = destinationId;
         this.forwardingEnabled = destinationId != null;
+    }
+
+    public Integer getRateLimitRequests() {
+        return rateLimitRequests;
+    }
+
+    /**
+     * Overrides the server-wide rate limit for this endpoint only, or goes back
+     * to the default when {@code requests} is null.
+     */
+    public void setRateLimitRequests(Integer requests) {
+        if (requests != null && (requests < 1 || requests > MAX_RATE_LIMIT)) {
+            throw new IllegalArgumentException("Rate limit must be between 1 and " + MAX_RATE_LIMIT);
+        }
+        this.rateLimitRequests = requests;
     }
 
     public int getRetentionDays() {

@@ -17,8 +17,11 @@
     </div>
 
     <h2 class="h5 mt-4">Endpoints</h2>
+    <p class="small text-muted" th:unless="${rateLimit.enabled}">
+        Rate limiting is turned off on this server. Limits set here are saved but not enforced.
+    </p>
     <table class="table table-sm" th:if="${!endpoints.isEmpty()}">
-        <thead><tr><th>Name</th><th>Status</th><th>Forward to</th><th>Created</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Status</th><th>Forward to</th><th>Rate limit</th><th>Created</th><th></th></tr></thead>
         <tbody>
         <tr th:each="e : ${endpoints}">
             <td th:text="${e.name}">name</td>
@@ -33,6 +36,19 @@
                         <option th:each="d : ${destinations}" th:if="${d.enabled}" th:value="${d.id}"
                                 th:text="${d.name}" th:selected="${d.id == e.forwardDestinationId}">dest</option>
                     </select>
+                    <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+                </form>
+            </td>
+            <td>
+                <form th:action="@{/endpoints/{id}/rate-limit(id=${e.id})}" method="post" class="d-flex gap-1">
+                    <div class="input-group input-group-sm rate-limit">
+                        <input type="number" name="rateLimit" class="form-control" min="1" step="1"
+                               th:max="${rateLimit.max}" th:value="${e.rateLimitRequests}"
+                               th:placeholder="|${rateLimit.defaultRequests} (default)|"
+                               th:title="|Requests accepted per rolling ${rateLimit.periodLabel}. Leave blank to use the server default (${rateLimit.defaultRequests}).|"
+                               th:aria-label="|Rate limit for ${e.name}|">
+                        <span class="input-group-text" th:text="|/ ${rateLimit.periodLabel}|">/ min</span>
+                    </div>
                     <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
                 </form>
             </td>
