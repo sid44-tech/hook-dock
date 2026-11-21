@@ -1,6 +1,7 @@
 package dev.hookdock.dashboard;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -86,5 +87,19 @@ class PageRenderingTest {
     void loginPageIsPublic() throws Exception {
         mvc.perform(get("/login")).andExpect(status().isOk());
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
+    }
+
+    @Test
+    void stylesheetsAreServedLocally() throws Exception {
+        // The app has to work without internet access, so pages load Bootstrap
+        // from the app itself rather than a CDN, and the login page can fetch it
+        // before anyone has signed in.
+        mvc.perform(get("/login"))
+                .andExpect(content().string(containsString("/vendor/bootstrap-5.3.3/css/bootstrap.min.css")))
+                .andExpect(content().string(not(containsString("cdn."))));
+        mvc.perform(get("/vendor/bootstrap-5.3.3/css/bootstrap.min.css"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Bootstrap  v5.3.3")));
+        mvc.perform(get("/css/app.css")).andExpect(status().isOk());
     }
 }
